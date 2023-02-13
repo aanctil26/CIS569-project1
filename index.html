@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+      .draggable-box {
+        width: 150px;
+        height: 50px;
+        border: 1px solid black;
+        text-align: center;
+        cursor: pointer;
+        position: absolute;
+      }
+      .description-box {
+        width: 300px;
+        height: 200px;
+        border: 1px solid black;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="boxes-container"></div>
+    <div id="description-container"></div>
+    <script>
+      var data = {
+        "John Doe": "John Doe is a software developer",
+        "Jane Doe": "Jane Doe is a graphic designer",
+        "Jim Smith": "Jim Smith is a project manager"
+      };
+
+      var boxesContainer = d3.select("#boxes-container");
+      var descriptionContainer = d3.select("#description-container");
+
+      var keys = Object.keys(data);
+      var values = Object.values(data);
+
+      boxesContainer.selectAll(".draggable-box")
+        .data(keys)
+        .enter()
+        .append("div")
+        .classed("draggable-box", true)
+        .text(function(d) { return d; })
+        .style("left", function(d, i) { return i * 200 + "px"; })
+        .call(
+          d3.drag()
+          .on("start", function(event, d) {
+            dx = parseInt(d3.select(this).style("left"), 10);
+            dy = parseInt(d3.select(this).style("top"), 10);
+          })
+          .on("drag", function(event, d) {
+        dx = dx + event.dx;
+        dy = dy + event.dy;
+        d3.select(this).style("left", (dx) + "px")
+                           .style("top", (dy) + "px");
+      }))
+        .on("click", function(event, d) {
+          var dataGrab = data[d]
+          var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+          if (descriptionBox.empty()) {
+            descriptionBox = descriptionContainer.append("div")
+              .classed("description-box", true)
+              .attr("id", d.replace(/\s/g, ''), true)
+              .style("display", "block")
+              .text(dataGrab);
+          } else {
+            if (descriptionBox.style("display") === "none") {
+              descriptionBox.style("display", "block")
+                .text(data[d]);
+            } else {
+              descriptionBox.style("display", "none");
+            }
+          }
+
+          descriptionBox.call(
+              d3.drag()
+              .on("start", function(event, d) {
+                dx = parseInt(d3.select(this).style("left"), 10);
+                dy = parseInt(d3.select(this).style("top"), 10);
+              })
+              .on("drag", function(event, d) {
+                dx = dx + event.dx;
+                dy = dy + event.dy;
+                d3.select(this).style("left", (dx) + "px")
+                               .style("top", (dy) + "px");
+        }))});
+
+    </script>
+  </body>
+</html>
+
