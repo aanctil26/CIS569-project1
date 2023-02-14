@@ -2,18 +2,19 @@
 <html>
   <head>
     <script src="https://d3js.org/d3.v6.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/d3plus-color@1"></script> -->
     <style>
       .draggable-box {
-        width: 150px;
-        height: 50px;
+        width: 100px;
+        height: 30px;
         border: 1px solid black;
         text-align: center;
         cursor: pointer;
         position: absolute;
       }
       .description-box {
-        width: 300px;
-        height: 200px;
+        width: 290px;
+        height: 500px;
         border: 1px solid black;
         position: absolute;
         top: 50%;
@@ -21,73 +22,161 @@
         transform: translate(-50%, -50%);
         display: none;
       }
+      .link {
+        position: absolute;
+        z-index: 1;
+        stroke: black;
+      }
     </style>
   </head>
   <body>
     <div id="boxes-container"></div>
     <div id="description-container"></div>
+    <svg id="links-container" viewBox="0 0 1500 900"></svg> 
+    <!-- 1000 900 worked before -->
+  <script type="text/javascript"></script>
     <script>
-      var data = {
-        "John Doe": "John Doe is a software developer",
-        "Jane Doe": "Jane Doe is a graphic designer",
-        "Jim Smith": "Jim Smith is a project manager"
-      };
 
-      var boxesContainer = d3.select("#boxes-container");
-      var descriptionContainer = d3.select("#description-container");
+      d3.json("./CIS569data.json").then(function(json) {
+        data = json;
 
-      var keys = Object.keys(data);
-      var values = Object.values(data);
 
-      boxesContainer.selectAll(".draggable-box")
-        .data(keys)
-        .enter()
-        .append("div")
-        .classed("draggable-box", true)
-        .text(function(d) { return d; })
-        .style("left", function(d, i) { return i * 200 + "px"; })
-        .call(
-          d3.drag()
-          .on("start", function(event, d) {
-            dx = parseInt(d3.select(this).style("left"), 10);
-            dy = parseInt(d3.select(this).style("top"), 10);
-          })
-          .on("drag", function(event, d) {
-        dx = dx + event.dx;
-        dy = dy + event.dy;
-        d3.select(this).style("left", (dx) + "px")
-                           .style("top", (dy) + "px");
-      }))
-        .on("click", function(event, d) {
-          var dataGrab = data[d]
-          var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
-          if (descriptionBox.empty()) {
-            descriptionBox = descriptionContainer.append("div")
-              .classed("description-box", true)
-              .attr("id", d.replace(/\s/g, ''), true)
-              .style("display", "block")
-              .text(dataGrab);
-          } else {
-            if (descriptionBox.style("display") === "none") {
-              descriptionBox.style("display", "block")
-                .text(data[d]);
-            } else {
-              descriptionBox.style("display", "none");
-            }
+        var boxesContainer = d3.select("#boxes-container");
+        var descriptionContainer = d3.select("#description-container");
+
+        var keys = Object.keys(data);
+        var values = Object.values(data);
+
+        var linksContainer = d3.select("#links-container");
+        linksContainer.selectAll("line")
+          .data(keys)
+          .enter()
+          .append("line")
+          .attr("class", function(d) { return d.replace(/\s/g, '') })
+          .attr("x1", 0)
+          .attr("y1", 0)
+          .attr("x2", 0)
+          .attr("y2", 0)
+          .classed("link", true);
+          function updateLinks() {
+            // Remove any existing links
+            linksContainer.selectAll("line").remove();
+
+            // Add links for each box that has a child box open
+            boxesContainer.selectAll(".draggable-box").each(function(d) {
+              var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+              if (!descriptionBox.empty() && descriptionBox.style("display") !== "none") {
+                var x1 = parseInt(d3.select(this).style("left"), 10) + 50;
+                var y1 = parseInt(d3.select(this).style("top"), 10) + 15;
+                var x2 = parseInt(descriptionBox.style("left"), 10) + 0;
+                var y2 = parseInt(descriptionBox.style("top"), 10) + 0;
+
+                linksContainer.append("line")
+                  .attr("x1", x1)
+                  .attr("y1", y1)
+                  .attr("x2", x2)
+                  .attr("y2", y2)
+                  .attr("class", "link")
+                  .attr("stroke", "black");
+              }
+            });
           }
 
-          descriptionBox.call(
-              d3.drag()
-              .on("start", function(event, d) {
-                dx = parseInt(d3.select(this).style("left"), 10);
-                dy = parseInt(d3.select(this).style("top"), 10);
-              })
-              .on("drag", function(event, d) {
-                dx = dx + event.dx;
-                dy = dy + event.dy;
-                d3.select(this).style("left", (dx) + "px")
-                               .style("top", (dy) + "px");
-        }))});
+
+
+        var titles = Object.keys(values[0]);
+        titles = titles.concat(Object.keys(values[1]));
+        titles = titles.concat(Object.keys(values[2]));
+        titles = titles.concat(Object.keys(values[3]));
+        titles = titles.concat(Object.keys(values[4]));
+
+
+        var colors = {"CIA":"lightgreen", "DIA":"steelblue", "FBI":"cyan", "NSA":"yellow", "USCBP":"pink"};
+
+        boxesContainer.selectAll(".draggable-box")
+          .data(titles)
+          .enter()
+          .append("div")
+          .classed("draggable-box", true)
+          .text(function(d) { return d; })
+          .style("left", function(d, i) { return i * 200 + "px"; })
+          .style("background-color", function (d) {return colors[d.split("_")[0]];})
+          .call(
+            d3.drag()
+            .on("start", function(event, d) {
+              dx = parseInt(d3.select(this).style("left"), 10);
+              dy = parseInt(d3.select(this).style("top"), 10);
+            })
+            .on("drag", function(event, d) {
+              dx = dx + event.dx;
+              dy = dy + event.dy;
+              d3.select(this).style("left", (dx) + "px")
+                             .style("top", (dy) + "px");
+              updateLinks();
+            })
+          )
+          .on("click", function(event, d) {
+            clickx = parseInt(d3.select(this).style("left"), 10);
+            clicky = parseInt(d3.select(this).style("top"), 10);
+            var dataGrab = data[d.split("_")[0]][d] // CIA, CIA_01
+            var currColor = colors[d.split("_")[0]]
+
+
+
+            boxesContainer.selectAll(".draggable-box")
+            .each(function(d) {
+                var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+                if (!descriptionBox.empty()) {
+                    updateLinks();
+                }
+            });
+
+
+            var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+
+
+
+
+            if (descriptionBox.empty()) {
+              descriptionBox = descriptionContainer.append("div")
+                .classed("description-box", true)
+                .attr("id", d.replace(/\s/g, ''), true)
+                .style("display", "block")
+                .text(dataGrab)
+                .style("left", (clickx + 52) + "px")
+                .style("top", (clicky + 283) + "px")
+                .style("background-color", currColor);
+              updateLinks();
+            } else {
+              if (descriptionBox.style("display") === "none") {
+                descriptionBox.style("display", "block")
+                  .text(dataGrab)
+                  .style("left", (clickx + 52) + "px")
+                  .style("top", (clicky + 283) + "px");
+                  updateLinks();
+              } else {
+                descriptionBox.style("display", "none");
+                updateLinks();
+              }
+            }
+
+            descriptionBox.call(
+                d3.drag()
+                .on("start", function(event, d) {
+                  dx = parseInt(d3.select(this).style("left"), 10);
+                  dy = parseInt(d3.select(this).style("top"), 10);
+                })
+                .on("drag", function(event, d) {
+                  dx = dx + event.dx;
+                  dy = dy + event.dy;
+                  d3.select(this).style("left", (dx) + "px")
+                                 .style("top", (dy) + "px");
+                  updateLinks();
+          }))});
+      }).catch(function(error) {
+        console.log(error);
+      });
+
 
     </script>
   </body>
